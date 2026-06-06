@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creador de Personajes IA - Víctor Gabriel Pardo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0f172a; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #f8fafc; padding: 10px; }
+        .chat-container { width: 100%; max-width: 480px; height: 92vh; background: #1e293b; display: flex; flex-direction: column; border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.4); overflow: hidden; border: 1px solid #334155; }
+        .chat-header { background: #1e293b; padding: 14px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 12px; }
+        .avatar-preview { width: 45px; height: 45px; background: #334155; border-radius: 50%; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #3b82f6; }
+        .setup-section { background: #0f172a; padding: 12px 16px; border-bottom: 1px solid #334155; display: flex; flex-direction: column; gap: 8px; max-height: 45%; overflow-y: auto; }
+        .setup-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .input-field { flex: 1; min-width: 120px; padding: 8px 12px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; color: white; font-size: 13px; outline: none; }
+        .input-field:focus { border-color: #3b82f6; }
+        .file-label { background: #475569; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; text-align: center; flex: 1; }
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #0f172a; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+        .user { background: #3b82f6; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .bot { background: #1e293b; color: #f8fafc; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #334155; }
+        .chat-input-area { padding: 14px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; }
+        .chat-input { flex: 1; padding: 12px; background: #0f172a; border: 1px solid #475569; border-radius: 8px; color: white; outline: none; font-size: 15px; }
+        .send-btn { background: #3b82f6; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .copyright-banner { background: #020617; text-align: center; padding: 6px; font-size: 10px; color: #64748b; border-top: 1px solid #1e293b; line-height: 1.3; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <!-- CABECERA DINÁMICA -->
+    <div class="chat-header">
+        <img id="botAvatar" class="avatar-preview" src="data:image/svg+xml,<svg xmlns='http://w3.org' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" alt="Avatar">
+        <div>
+            <h3 id="botNameTitle" style="font-size: 16px;">Personaje IA</h3>
+            <p style="font-size: 11px; color: #22c55e;">● Configuración Activa</p>
+        </div>
+    </div>
+    
+    <!-- PANEL DE CONFIGURACIÓN -->
+    <div class="setup-section">
+        <div class="setup-row">
+            <input type="password" id="apiKeyInput" class="input-field" placeholder="Tu API Key de Google Studio...">
+            <label class="file-label" for="avatarUpload">📸 Subir Imagen</label>
+            <input type="file" id="avatarUpload" accept="image/*" style="display:none;" onchange="previewImage(this)">
+        </div>
+        <div class="setup-row">
+            <input type="text" id="nameInput" class="input-field" placeholder="Nombre del personaje..." oninput="updateName(this.value)">
+            
+        </div>
+        <input type="text" id="personalityInput" class="input-field" placeholder="Personalidad (Ej: Divertido, Sarcástico, Serio)...">
+        
+        <!-- TEXTO DE ADVERTENCIA MEJORADO -->
+        <p style="font-size: 10px; color: #ef4444; text-align: center; line-height: 1.2; font-weight: 500;">
+            ⚠️ AVISO REGULATORIO: Está estrictamente prohibido usar esta plataforma para planificar o realizar acciones ilegales, infringir el copyright o vulnerar la protección de menores.
+        </p>
+    </div>
+
+    <!-- PANTALLA DE CHAT -->
+    <div class="chat-messages" id="chatbox">
+        <div class="message bot" id="welcomeMessage">¡Hola! Configura a tu personaje arriba (Imagen, Nombre, Personalidad) e ingresa tu API Key para empezar a chatear. Al cerrar la pestaña, todo se eliminará de forma segura.</div>
+    </div>
+    
+    <!-- BARRA DE ENTRADA -->
+    <div class="chat-input-area">
+        <input type="text" id="userInput" class="chat-input" placeholder="Escribe tu mensaje..." onkeypress="handleKeyPress(event)">
+        <button class="send-btn" onclick="sendMessage()">Enviar</button>
+    </div>
+
+    <!-- RECONOCIMIENTO DE PROPIEDAD -->
+    <div class="copyright-banner">
+        Esta aplicación pertenece a <b>VICTOR GABRIEL PARDO</b>.<br>
+        Requiere el uso de tu propia Google API. Uso bajo responsabilidad del usuario.
+    </div>
+</div>
+
+<script>
+    let chatHistory = [];
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('botAvatar').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function updateName(val) {
+        document.getElementById('botNameTitle').innerText = val.trim() || "Personaje IA";
+        document.getElementById('welcomeMessage').innerText = `¡Hola! Soy ${val.trim() || "tu personaje personalizado"}. ¿De qué quieres hablar hoy?`;
+    }
+
+    async function sendMessage() {
+        const userApiKey = document.getElementById("apiKeyInput").value.trim();
+        const inputField = document.getElementById("userInput");
+        const messageText = inputField.value.trim();
+
+        const charName = document.getElementById("nameInput").value.trim() || "Personaje";
+        const charIdentity = document.getElementById("identityInput").value.trim() || "un asistente";
+        const charPersonality = document.getElementById("personalityInput").value.trim() || "amable y neutral";
+
+        if (!userApiKey) {
+            alert("Por favor, ingresa tu API Key de Google AI Studio en el panel superior.");
+            return;
+        }
+        if (!messageText) return;
+
+        appendMessage(messageText, "user");
+        inputField.value = "";
+        appendMessage("Pensando...", "bot", "loading-msg");
+
+        // Reglas estrictas inyectadas directamente al modelo
+        const systemInstruction = `Tu nombre es ${charName}. Tu identidad es: ${charIdentity}. Tu personalidad es: ${charPersonality}. 
+        REGLAS DE SEGURIDAD ABSOLUTAS:
+        1. Queda terminantemente PROHIBIDO colaborar, asesorar, planificar o hablar sobre acciones ilegales, delictivas o ilícitas. Si el usuario te pide algo ilegal, debes negarte rotundamente.
+        2. Debes respetar rigurosamente las leyes de copyright globales y propiedad intelectual.
+        3. Queda prohibido generar contenido inadecuado, explícito, violento o perjudicial para menores de edad. Mantén siempre una línea ética intachable.`;
+
+        if (chatHistory.length === 0) {
+            chatHistory.push({
+                role: "user",
+                parts: [{ text: `[INSTRUCCIÓN DE SISTEMA: ${systemInstruction}]` }]
+            });
+        }
+
+        chatHistory.push({ role: "user", parts: [{ text: messageText }] });
+
+        try {
+            const response = await fetch(`https://googleapis.com{userApiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: chatHistory })
+            });
+
+            const data = await response.json();
+            document.getElementById("loading-msg").remove();
+
+            if (data.error) {
+                appendMessage("Error de API: " + data.error.message, "bot");
+                return;
+            }
+
+            const botReply = data.candidates.content.parts.text;
+            appendMessage(botReply, "bot");
+
+            chatHistory.push({ role: "model", parts: [{ text: botReply }] });
+
+        } catch (error) {
+            if(document.getElementById("loading-msg")) document.getElementById("loading-msg").remove();
+            appendMessage("Error de conexión. Revisa que tu clave API sea válida.", "bot");
+            console.error(error);
+        }
+    }
+
+    function appendMessage(text, sender, id = null) {
+        const chatbox = document.getElementById("chatbox");
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("message", sender);
+        if (id) msgDiv.id = id;
+        msgDiv.innerText = text;
+        chatbox.appendChild(msgDiv);
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter") sendMessage();
+    }
+</script>
+
+</body>
+</html>
